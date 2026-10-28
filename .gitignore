@@ -1,0 +1,13 @@
+# build output
+/rcpsp
+/rcpsp.exe
+*.o
+
+# run output (results/<solver>_<set>_<flags>_vNN.csv, logs of run_full.sh)
+/results/
+/logs/
+
+# IDE
+.idea/
+.vscode/
+cmake-build-*/
