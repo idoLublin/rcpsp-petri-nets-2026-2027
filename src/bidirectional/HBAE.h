@@ -1,6 +1,6 @@
 #pragma once
 // ─────────────────────────────────────────────────────────────────────────────
-// HBAE — bidirectional search over the forward net and the reversed net (mode tt2hbae_<set>).
+// HBAE — bidirectional search over the forward net and the reversed net (./rcpsp hbae <set>).
 // The algorithm is BAE_RCPSP.h (HOG2's BAE* with the meet lookup separated from the node identity). Everything
 // here is glue so that one search can drive TWO different nets:
 //   * the state carries which side it belongs to; successors inherit it;
@@ -221,7 +221,7 @@ inline HbaeResult solveRCPSP_TT2_HBAE(int group, int exam, const std::string& se
 
     // RCPSP_BI_REFUTE: on each new incumbent U, try to prove that no schedule ends by U - 1 (Prover.h), within
     // RCPSP_BI_REFUTE_MS per incumbent; a proof stops the search with U optimal.
-    // Built on the reversed instance, as in the measured runs (it has the same optimum; schedules are mirrored).
+    // Built on the reversed instance (same optimum, schedules mirrored), which is where the side loop left the globals.
     sides.use(false);
     const deadline::Inst refI = deadline::build();
     if (g_bi_refute) {
@@ -317,15 +317,4 @@ inline HbaeResult solveAndWriteHBAE(int g, int e, const std::string& set, const 
     }
     checkAgainstOptimum(set, g, e, r.proven, r.mk, r.ub, csv);
     return r;
-}
-
-// All instances of one set (48 groups x 10), or the RCPSP_ONLY list.
-inline void runBenchmarkTT2HBAE(const std::string& set) {
-    const std::string csv = resultFile("HBAE", set, hbaeTag(), hbaeCsvHeader());
-    std::cout << "\n=== HBAE | " << set << " ===  -> " << csv << std::endl;
-    int unproven = 0;
-    for (int g = 1; g <= 48; g++)
-        for (int e = 1; e <= 10; e++)
-            if (onlyInstance(set, g, e) && !solveAndWriteHBAE(g, e, set, csv).proven) ++unproven;
-    std::cout << "\nHBAE benchmark done (" << set << ") -> " << csv << "   [" << unproven << " unproven]" << std::endl;
 }

@@ -1,9 +1,11 @@
 #pragma once
 // Loading one PSPLIB instance: getPetri reads petri.json, getRCPSP reads rcpsp.json, both from
 //   <data dir>/json_outputs_<set>/<set><group>_<exam>/
-// The data dir is RCPSP_DATA_DIR if set, otherwise "data" (run from the repository root).
+// The data dir is RCPSP_DATA_DIR if set, otherwise the "data" folder of the repository: found from the working
+// directory or up to three levels above it (so a run from an IDE build folder works too).
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -12,9 +14,25 @@
 
 using json = nlohmann::json;
 
+// The repository root: the first of ".", "..", "../..", "../../.." that holds data/known_bounds.
+inline std::string repoRoot() {
+    static const std::string root = [] {
+        namespace fs = std::filesystem;
+        std::error_code ec;
+        fs::path p = fs::current_path(ec);
+        for (int up = 0; up < 4 && !ec; ++up) {
+            if (fs::exists(p / "data" / "known_bounds", ec)) return p.string();
+            if (!p.has_parent_path() || p == p.parent_path()) break;
+            p = p.parent_path();
+        }
+        return std::string(".");
+    }();
+    return root;
+}
+
 inline std::string dataDir() {
     const char* e = std::getenv("RCPSP_DATA_DIR");
-    return (e && *e) ? std::string(e) : std::string("data");
+    return (e && *e) ? std::string(e) : repoRoot() + "/data";
 }
 
 inline std::string instanceFile(const std::string& set, int group, int exam, const char* file) {
@@ -24,7 +42,7 @@ inline std::string instanceFile(const std::string& set, int group, int exam, con
 inline bool openInstanceFile(std::ifstream& in, const std::string& path) {
     in.open(path);
     if (in.is_open()) return true;
-    std::cerr << "Failed to open " << path << " (run from the repository root, or set RCPSP_DATA_DIR)" << std::endl;
+    std::cerr << "Failed to open " << path << " (run inside the repository, or set RCPSP_DATA_DIR)" << std::endl;
     return false;
 }
 
@@ -57,7 +75,7 @@ inline void getPetri(PetriExample& petriExample, int group, int exam, const std:
         std::unordered_map<std::string, short> arcsIn, arcsOut;
         if (j[i]["arcs_in"].is_object())  arcsIn  = j[i]["arcs_in"].get<std::unordered_map<std::string, short>>();
         if (j[i]["arcs_out"].is_object()) arcsOut = j[i]["arcs_out"].get<std::unordered_map<std::string, short>>();
-        petriExample.places.push_back(Place(pName, arcsIn, arcsOut, state, j[i]["duration"]));
+        petriExample.places.push_back(Place(pName, arcsIn, arcsOut, state));
     }
 
     // Transitions: arcs are stored as (place id, weight) instead of place names.
@@ -84,7 +102,8 @@ inline void getRCPSP(RCPSP_example& rcpsp_example, int group, int exam, const st
     json j;
     input_file >> j;
 
-    // Layout: [activities..., predecessors{id: [...]}, successors{id: [...]}, deep dependencies[[a,b],...], resources{name: cap}]
+    // Layout: [activities..., predecessors{id: [...]}, successors{id: [...]}, transitive precedences [[a,b],...] (not used),
+    //          resources{name: capacity}]
     const int nAct = (int)j.size() - 4;
     for (int i = 0; i < nAct; ++i)
         rcpsp_example.addActivity(Activity(j[i]["duration"], j[i]["name"], j[i]["resource_demands"]));
@@ -104,12 +123,4 @@ inline void getRCPSP(RCPSP_example& rcpsp_example, int group, int exam, const st
 
     for (auto& [key, value] : j[j.size() - 1].items())
         rcpsp_example.addResource(key, value.get<int>());
-
-    const auto& deep = j[j.size() - 2];
-    if (deep.is_array())
-        for (const auto& pair : deep)
-            if (pair.is_array() && pair.size() == 2) {
-                const std::string from = pair[0], to = pair[1];
-                rcpsp_example.deep_dependencies.insert({from, to});
-            }
 }

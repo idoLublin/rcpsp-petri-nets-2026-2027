@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <map>
-#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -28,13 +27,11 @@ public:
 class RCPSP_example {
 public:
     std::vector<Activity> activities;
-    int activity_len;
     std::vector<std::vector<short>> backword_dependencies;   // predecessors of activity i (index i-1)
     std::vector<std::vector<short>> dependencies;            // successors of activity i (index i-1)
     std::vector<std::pair<std::string, short>> resources;    // (name, capacity)
-    std::set<std::pair<std::string, std::string>> deep_dependencies;   // transitive precedences, as in the JSON
 
-    RCPSP_example() : activity_len(0) {}
+    RCPSP_example() = default;
     // Explicit moves: the bidirectional search swaps the forward and the reversed instance on every side change,
     // and std::swap must be O(1) there.
     RCPSP_example(const RCPSP_example&) = default;
@@ -49,8 +46,6 @@ public:
         dependencies.clear();
         backword_dependencies.clear();
         resources.clear();
-        activity_len = 0;
-        deep_dependencies.clear();
     }
 };
 
@@ -60,14 +55,12 @@ public:
     std::unordered_map<std::string, short> arcs_in;
     std::unordered_map<std::string, short> arcs_out;
     std::vector<std::vector<short>> state;   // initial marking
-    short duration;
 
     Place(const std::string& placeName,
           const std::unordered_map<std::string, short>& inputArcs = {},
           const std::unordered_map<std::string, short>& outputArcs = {},
-          const std::vector<std::vector<short>>& initialState = {},
-          short initialDuration = 0)
-        : name(placeName), arcs_in(inputArcs), arcs_out(outputArcs), state(initialState), duration(initialDuration) {}
+          const std::vector<std::vector<short>>& initialState = {})
+        : name(placeName), arcs_in(inputArcs), arcs_out(outputArcs), state(initialState) {}
 };
 
 class Transition {
@@ -82,11 +75,10 @@ public:
 class PetriExample {
 public:
     std::vector<Place> places;
-    int place_len;
     std::vector<Transition> Transitions;
     std::unordered_map<std::string, int> place_name_to_id;
 
-    PetriExample() : place_len(0) {}
+    PetriExample() = default;
     // Same as RCPSP_example: O(1) swaps for the bidirectional search.
     PetriExample(const PetriExample&) = default;
     PetriExample& operator=(const PetriExample&) = default;
@@ -96,7 +88,6 @@ public:
     void reset() {
         places.clear();
         Transitions.clear();
-        place_len = 0;
     }
 };
 

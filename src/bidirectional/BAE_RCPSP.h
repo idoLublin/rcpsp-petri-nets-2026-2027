@@ -9,9 +9,8 @@
 //     is on the frame-independent normalised CUT key (forward states sit on START events, reversed states on
 //     FINISH events, so their full markings never coincide). So each queue keeps a side index meetHash -> node id
 //     and cross-queue lookups go through it. The environment supplies GetMeetHash(state) next to GetStateHash.
-//  2. The configuration measured best on the server (the old flags RCPSP_BI_PRIO=1, RCPSP_BI_STOP=max,
-//     RCPSP_BI_ACTIVETB=1, RCPSP_BI_NIP=0, RCPSP_BI_ALT=0) is built in:
-//       - priority = f = g + h (BAE*'s b = 2g + h - h_opp is in the git history of the ido branch);
+//  2. The variant that worked best on PSPLIB is built in:
+//       - priority = f = g + h (BAE* proper orders by b = 2g + h - h_opp; on this model f did better);
 //       - side choice: Pohl's cardinality rule (expand the side with the smaller open list);
 //       - no lazy nipping, and nodes with f >= U are kept (they are what lets min f rise to U);
 //       - stop as soon as U <= max(min f_F, min f_B): while U > C*, each side keeps an open node on an optimal

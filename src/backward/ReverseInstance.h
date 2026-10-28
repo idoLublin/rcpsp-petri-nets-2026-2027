@@ -4,7 +4,7 @@
 // an instance with the SAME optimal makespan, whose schedules are the original ones mirrored in time. Reversing
 // the loaded net in place turns the forward solver into a correct backward search, with all its dominance rules
 // and its heuristic (Heuristic.h detects the reversed orientation by itself).
-// Used by mode tt2rev_<set> (main.cpp) and by the backward side of HBAE (bidirectional/HBAE.h).
+// Used by ./rcpsp bwd and by the backward side of HBAE (bidirectional/HBAE.h).
 
 #include <string>
 #include <utility>

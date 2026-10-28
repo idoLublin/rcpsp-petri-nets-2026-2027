@@ -12,8 +12,6 @@
 // tree is recorded as nogoods (Lecoutre et al. 2007). A run that ends without reaching its limit has explored the
 // whole tree, so "refuted" is a proof. A leaf where every window is a single value passed propagation, so it is a
 // schedule ending by D (checked with feasible()).
-// Tuning (measured on the 78 j30 instances whose root bound falls short): 7 pivots per window, rating step 0.15,
-// first fail limit 128, growth x1.5, restart nogoods on.
 
 #include <algorithm>
 #include <chrono>

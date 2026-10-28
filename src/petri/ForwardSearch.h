@@ -153,7 +153,7 @@ inline int solveRCPSP_TT2(int group, int exam, const std::string& csv, const std
     astar.GetPath(&env, first, goal, path);         // stops at the time limit (astar_timeout_seconds) with an empty path
     g_prof_astar_sec = secs_since(g_prof_t0);
     const std::chrono::duration<double> elapsed = std::chrono::high_resolution_clock::now() - start;
-    if (g_tt2_compact_on == 1) for (auto& s : path) if (tt2CompactStripped(s)) tt2CompactRebuild(s);
+    if (g_tt2_compact_on == 1) for (auto& s : path) if (tt2CompactStripped(s)) tt2CompactRebuild(s);   // full states again
 
     int makespan = 0;
     if (!path.empty()) {
@@ -192,14 +192,4 @@ inline int solveRCPSP_TT2(int group, int exam, const std::string& csv, const std
     g_tt2_compact_on = 0;
     if (!path.empty()) checkAgainstOptimum(set, group, exam, true, makespan, makespan, csv);
     return path.empty() ? -1 : makespan;
-}
-
-// All instances of one set (48 groups x 10), or the RCPSP_ONLY list.
-inline void runBenchmarkTT2(const std::string& set) {
-    const std::string csv = resultFile(g_tt2_reverse ? "TT2bwd" : "TT2fwd", set, forwardTag(), tt2CsvHeader());
-    std::cout << "\n=== TT2 " << (g_tt2_reverse ? "backward" : "forward") << " | " << set << " ===  -> " << csv << std::endl;
-    for (int g = 1; g <= 48; g++)
-        for (int e = 1; e <= 10; e++)
-            if (onlyInstance(set, g, e)) solveRCPSP_TT2(g, e, csv, set);
-    std::cout << "\nTT2 benchmark done (" << set << ") -> " << csv << std::endl;
 }

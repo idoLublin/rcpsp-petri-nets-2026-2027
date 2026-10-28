@@ -1,10 +1,9 @@
 #pragma once
 // Result files and run bookkeeping.
-//   resultFile        results/<solver>_<set>_<flags>_vNN.csv (RCPSP_RESULTS_DIR overrides the folder,
-//                     RCPSP_OUT the whole path)
+//   resultFile        results/<search>_<set>_<flags>_vNN.csv (RCPSP_RESULTS_DIR overrides the folder)
 //   onlyInstance      RCPSP_ONLY=<file>: run only the instances listed there, one "set,group,exam" per line
-//   checkAgainstOptimum  every finished instance is compared with data/known_optima.csv; a wrong answer stops
-//                     the run (exit 3): a run with a wrong answer is not a result
+//   checkAgainstOptimum  every finished instance is compared with data/known_bounds/known_optima.csv; a wrong
+//                     answer stops the run (exit 3): a run with a wrong answer is not a result
 
 #include <cstdio>
 #include <filesystem>
@@ -81,24 +80,19 @@ inline std::string hbaeTag() {
     return t;
 }
 
-// <dir>/<solver>_<set>_<tag>_vNN.csv with the first free version; the file is created at once (with the header)
+// <dir>/<search>_<set>_<tag>_vNN.csv with the first free version; the file is created at once (with the header)
 // so parallel runs cannot take the same name.
-inline std::string resultFile(const std::string& solver, const std::string& set, const std::string& tag, const std::string& header) {
+inline std::string resultFile(const std::string& search, const std::string& set, const std::string& tag, const std::string& header) {
     namespace fs = std::filesystem;
+    const char* e = std::getenv("RCPSP_RESULTS_DIR");
+    const std::string dir = (e && *e) ? std::string(e) : repoRoot() + "/results";
+    std::error_code ec;
+    fs::create_directories(dir, ec);
     std::string path;
-    if (const char* o = std::getenv("RCPSP_OUT"); o && *o) {
-        path = o;
-        std::error_code ec; fs::path pp(path); if (pp.has_parent_path()) fs::create_directories(pp.parent_path(), ec);
-    } else {
-        const char* e = std::getenv("RCPSP_RESULTS_DIR");
-        const std::string dir = (e && *e) ? std::string(e) : std::string("results");
-        std::error_code ec;
-        fs::create_directories(dir, ec);
-        for (int v = 1; ; ++v) {
-            char vb[16]; std::snprintf(vb, sizeof vb, "_v%02d", v);
-            path = dir + "/" + solver + "_" + set + "_" + tag + vb + ".csv";
-            if (!fs::exists(path, ec)) break;
-        }
+    for (int v = 1; ; ++v) {
+        char vb[16]; std::snprintf(vb, sizeof vb, "_v%02d", v);
+        path = dir + "/" + search + "_" + set + "_" + tag + vb + ".csv";
+        if (!fs::exists(path, ec)) break;
     }
     std::ofstream f(path);
     if (!f.is_open()) { std::cerr << "Cannot write " << path << std::endl; std::exit(1); }
@@ -106,12 +100,14 @@ inline std::string resultFile(const std::string& solver, const std::string& set,
     return path;
 }
 
-// data/known_optima.csv: instance,size,group,exam,optimum,... (j30: all 480; j60/j90: the ones some method proved)
+// data/known_bounds/known_optima.csv: instance,size,group,exam,optimum,... (j30: all 480; j60/j90: the ones some
+// method proved; see data/README.md)
 inline int knownOptimum(const std::string& set, int g, int e) {
     static const std::map<std::string, int> opt = [] {
         std::map<std::string, int> m;
-        std::ifstream in(dataDir() + "/known_optima.csv");
-        if (!in.is_open()) { std::cerr << "Note: " << dataDir() << "/known_optima.csv not found, results are not checked" << std::endl; return m; }
+        const std::string path = dataDir() + "/known_bounds/known_optima.csv";
+        std::ifstream in(path);
+        if (!in.is_open()) { std::cerr << "Note: " << path << " not found, results are not checked" << std::endl; return m; }
         std::string line; std::getline(in, line);   // header
         while (std::getline(in, line)) {
             std::stringstream ss(line); std::string inst, size, gs, es, os;

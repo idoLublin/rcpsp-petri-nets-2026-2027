@@ -73,11 +73,11 @@ inline void RCPSP_TT2::GetSuccessors(const RCPSPState_TT2& nodeStored, std::vect
     if (prof) { pg0 = std::chrono::steady_clock::now(); g_prof_avail_sec += std::chrono::duration<double>(pg0 - pa0).count(); }
 
     // ── DR5 before construction ──
-    // Each time-advancing child is tested against DR5 on its DR5 view BEFORE it is built; a batch subset child
-    // is built anyway (its extensions start from it) and tested as built. The view of "fire t after delay d":
-    // g' = g + d; the scheduled set gains t; an active i stays active iff rem_i > d, with release g + rem_i (the
-    // clock advance leaves it unchanged); t becomes active with release g' + p_t if p_t > 0. The tests run in the
-    // order the DR5 loop after generation would run them, so every decision is the same (same search, 6-15% faster).
+    // A time-advancing child is tested against DR5 on its DR5 view, so a pruned child is never built; a batch
+    // subset child is built anyway (its extensions start from it). The view of "fire t after delay d": g' = g + d;
+    // the scheduled set gains t; an active i stays active iff rem_i > d, with release g + rem_i; t becomes active
+    // with release g' + p_t if p_t > 0. The tests run in generation order, so the decisions equal testing after
+    // construction.
     const bool preDR5 = g_tt2_dr5 && neighbors.empty();
     TT2DominanceTable* const preTab = preDR5 ? &get_tt2_dominance_table() : nullptr;
     const TT2DominanceTable::Key preKey = preDR5 ? TT2DominanceTable::MakeKey(nodeID) : TT2DominanceTable::Key{0, 0};
@@ -173,8 +173,7 @@ inline void RCPSP_TT2::GetSuccessors(const RCPSPState_TT2& nodeStored, std::vect
         };
         // Batch close: a node reached by a zero-delay batch edge starts nothing more at that time. Its parent
         // emitted every resource-feasible subset of its zero-delay activities, so "S now, then T now" is the
-        // parent's child S+T: the same state, which DR5 would drop. Same search, fewer children built (on the
-        // full server run: same solved set and expansions, 8-22% faster). Not after a duration-0 activity (it can
+        // parent's child S+T: the same state, which DR5 would drop anyway. Not after a duration-0 activity (it can
         // enable new zero-delay starts) and not when the parent's enumeration hit RCPSP_TT2_BATCH_CAP.
         if (nodeID.batchClosed) {
             ++g_tt2_batch_close_nodes;

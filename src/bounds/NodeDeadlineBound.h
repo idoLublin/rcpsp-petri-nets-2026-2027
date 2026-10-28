@@ -12,11 +12,9 @@
 // that empties, prove it cannot — so the remaining makespan is > D and h can be raised to D+1. Every raise is a
 // proof, so h stays admissible; failure to refute leaves h untouched.
 //
-// Cost control: RCPSP_TT2_TT_STEPS deadlines per call (default 16 - the loop stops at the first deadline it
-// cannot refute, so extra steps cost nothing unless they succeed; measured saturation at 16 on j30), the cheap
-// compulsory-part test first, the window tightening only under RCPSP_TT2_TT_FULL (default 1), and only for nodes
-// with at least RCPSP_TT2_TT_MINACT unfinished activities (default 2).
-// Measured (j30, 24 instances the root does not close): expansions -23..-30%, 0 wrong; j60: one more solved of 12.
+// Cost control: at most RCPSP_TT2_TT_STEPS deadlines per call (the loop stops at the first deadline it cannot
+// refute), the cheap compulsory-part test before the window tightening (RCPSP_TT2_TT_FULL), and only nodes with
+// at least RCPSP_TT2_TT_MINACT unfinished activities.
 // ─────────────────────────────────────────────────────────────────────────────
 #include <algorithm>
 #include <chrono>

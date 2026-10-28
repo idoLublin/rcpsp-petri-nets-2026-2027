@@ -1,14 +1,40 @@
 // Exact RCPSP solver on timed Petri nets (TTPNR, SoCS 2026) — entry point.
-// Build and run from the repository root (see README.md):
-//   ./build.sh
-//   ./rcpsp tt2_j30                 forward search, all 480 j30 instances
-//   ./rcpsp tt2one j30 5 3          forward search, one instance (group 5, exam 3)
+//   ./rcpsp <search> <set> [<group> [<exam>]]      (run ./rcpsp help for the details and the flags)
 // The whole program is one translation unit: this file includes every header once.
 
 #include <cstdlib>
 #include <iostream>
 #include <string>
 #include "bidirectional/HBAE.h"     // includes the forward search (petri/), the backward search and the bounds
+
+static const char* kUsage =
+    "usage: ./rcpsp <search> <set> [<group> [<exam>]]\n"
+    "  search  fwd    A* on the Petri net, forward in time\n"
+    "          bwd    the same A* on the reversed instance (backward in time; same optimum)\n"
+    "          hbae   bidirectional: forward and backward at once, meeting in the middle\n"
+    "  set     j30 | j60 | j90 (PSPLIB, 48 groups x 10 instances)\n"
+    "  group   1-48: only that group; with exam 1-10: only that instance\n"
+    "Results: results/<search>_<set>_<flags>_vNN.csv, one row per instance; every proven makespan is checked\n"
+    "against data/known_bounds/known_optima.csv and a wrong one stops the run (exit code 3).\n"
+    "Examples:\n"
+    "  ./rcpsp fwd j30                 all 480 j30 instances\n"
+    "  ./rcpsp hbae j60 12 3           one instance, prints its schedule\n"
+    "  RCPSP_TIMEOUT_S=60 RCPSP_TT2_TT=1 ./rcpsp fwd j30 5\n";
+
+static const char* kFlags =
+    "Flags (environment variables, 0 = off, 1 = on):\n"
+    "  RCPSP_TIMEOUT_S=300       time limit per instance, seconds\n"
+    "  RCPSP_ONLY=<file>         run only the instances listed there, one 'set,group,exam' per line\n"
+    "  RCPSP_RESULTS_DIR=results output folder;  RCPSP_DATA_DIR=data  input folder\n"
+    "  RCPSP_TT2_DR5=1           cutset dominance (all searches)\n"
+    "  RCPSP_TT2_DR4=1           delayed-start dominance (fwd, bwd)\n"
+    "  RCPSP_TT2_BATCH=1         start a feasible subset of the ready activities per edge (fwd, bwd)\n"
+    "  RCPSP_TT2_COMPACT=0       1 = keep stored nodes compact (same search, less memory), 2 = check mode (fwd, bwd)\n"
+    "  RCPSP_TT2_TT=0            per-node deadline bound (all searches); _STEPS=16 _FULL=1 _MINACT=2\n"
+    "  RCPSP_TT2_PROF=0          time per search phase in the CSV; RCPSP_TT2_PROF_TRACE=<file> a snapshot every 5 s\n"
+    "  RCPSP_BI_DR4=1            hbae: delayed-start dominance on both sides\n"
+    "  RCPSP_BI_BATCH=0          hbae: batch expansion on both sides\n"
+    "  RCPSP_BI_REFUTE=0         hbae: try to prove each new incumbent optimal; _MS=2000 per incumbent, _SHARE=0.5\n";
 
 static void readOptions() {
     g_tt2_dr5 = envFlag("RCPSP_TT2_DR5", true);
@@ -37,54 +63,62 @@ static void readOptions() {
     if (const long t = envNum("RCPSP_TIMEOUT_S", 300); t > 0) astar_timeout_seconds = t;
 }
 
-static void printOptions(const std::string& mode) {
-    std::cout << "mode " << mode << " | time limit " << astar_timeout_seconds << " s | data " << dataDir() << "\n"
-              << "TT2: DR5=" << g_tt2_dr5 << " DR4=" << g_tt2_dr4 << " batch=" << g_tt2_batch << " (cap " << g_tt2_batch_cap << ")"
-              << " compact=" << g_tt2_compact << " nodeTT=" << g_tt2_node_tt;
+static void printOptions(const std::string& search, const std::string& set) {
+    std::cout << search << " " << set << " | time limit " << astar_timeout_seconds << " s | data " << dataDir() << "\n";
+    if (search == "hbae")
+        std::cout << "flags: DR5=" << g_tt2_dr5 << " DR4=" << g_bi_dr4 << " batch=" << g_bi_batch;
+    else
+        std::cout << "flags: DR5=" << g_tt2_dr5 << " DR4=" << g_tt2_dr4 << " batch=" << g_tt2_batch << " compact=" << g_tt2_compact;
+    std::cout << " nodeTT=" << g_tt2_node_tt;
     if (g_tt2_node_tt) std::cout << " (steps " << g_tt2_node_tt_steps << ", full " << g_tt2_node_tt_full << ", minAct " << g_tt2_node_tt_minact << ")";
+    if (search == "hbae") {
+        std::cout << " prover=" << g_bi_refute;
+        if (g_bi_refute) std::cout << " (" << g_bi_refute_ms << " ms per incumbent, share " << g_bi_refute_share << ")";
+    }
     std::cout << " prof=" << g_tt2_prof << "\n";
-    if (mode.rfind("tt2hbae", 0) == 0)
-        std::cout << "HBAE: DR5=" << g_tt2_dr5 << " DR4=" << g_bi_dr4 << " batch=" << g_bi_batch << " prover=" << g_bi_refute
-                  << (g_bi_refute ? " (" + std::to_string(g_bi_refute_ms) + " ms, share " + std::to_string(g_bi_refute_share) + ")" : std::string()) << "\n";
 }
 
-static int usage() {
-    std::cerr << "usage: rcpsp <mode> [args]\n"
-                 "  tt2_<set>                     forward search, all instances of j30 | j60 | j90 (or the RCPSP_ONLY list)\n"
-                 "  tt2rev_<set>                  backward search (forward search on the reversed instances)\n"
-                 "  tt2hbae_<set>                 bidirectional search (HBAE)\n"
-                 "  tt2one  <set> <group> <exam>  forward search, one instance\n"
-                 "  tt2rev  <set> <group> <exam>  backward search, one instance\n"
-                 "  tt2hbae <set> <group> <exam>  bidirectional search, one instance\n"
-                 "Flags are environment variables, see README.md.\n";
+static int usage(const char* why = nullptr) {
+    if (why) std::cerr << why << "\n\n";
+    std::cerr << kUsage << "\n" << kFlags;
     return 1;
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) return usage();
-    const std::string mode = argv[1];
-    readOptions();
-    printOptions(mode);
-    // RCPSP_TT2_COMPACT applies to the one-directional search only (HBAE keeps the token lists).
-    if (g_tt2_compact && mode.rfind("tt2hbae", 0) == 0) { std::cout << "RCPSP_TT2_COMPACT: ignored in HBAE\n"; g_tt2_compact = 0; }
-
-    if (argc >= 5 && (mode == "tt2one" || mode == "tt2rev" || mode == "tt2hbae")) {
-        const std::string set = argv[2];
-        const int g = std::atoi(argv[3]), e = std::atoi(argv[4]);
-        if (mode == "tt2hbae") {
-            const std::string csv = resultFile("HBAE", set, hbaeTag() + "-one", hbaeCsvHeader());
-            solveAndWriteHBAE(g, e, set, csv);
-            std::cout << "-> " << csv << std::endl;
-            return 0;
-        }
-        g_tt2_reverse = (mode == "tt2rev");
-        const std::string csv = resultFile(g_tt2_reverse ? "TT2bwd" : "TT2fwd", set, forwardTag() + "-one", tt2CsvHeader());
-        solveRCPSP_TT2(g, e, csv, set);
-        std::cout << "-> " << csv << std::endl;
+    if (argc >= 2 && (std::string(argv[1]) == "help" || std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h")) {
+        std::cout << kUsage << "\n" << kFlags;
         return 0;
     }
-    if (mode.rfind("tt2hbae_", 0) == 0) { runBenchmarkTT2HBAE(mode.substr(8)); return 0; }
-    if (mode.rfind("tt2rev_", 0) == 0)  { g_tt2_reverse = true; runBenchmarkTT2(mode.substr(7)); return 0; }
-    if (mode.rfind("tt2_", 0) == 0)     { runBenchmarkTT2(mode.substr(4)); return 0; }
-    return usage();
+    if (argc < 3 || argc > 5) return usage();
+    const std::string search = argv[1], set = argv[2];
+    if (search != "fwd" && search != "bwd" && search != "hbae") return usage(("unknown search '" + search + "'").c_str());
+    if (set != "j30" && set != "j60" && set != "j90") return usage(("unknown set '" + set + "'").c_str());
+    const int group = argc >= 4 ? std::atoi(argv[3]) : 0, exam = argc >= 5 ? std::atoi(argv[4]) : 0;
+    if (argc >= 4 && (group < 1 || group > 48)) return usage("group must be 1-48");
+    if (argc >= 5 && (exam < 1 || exam > 10)) return usage("exam must be 1-10");
+
+    readOptions();
+    if (search == "hbae") g_tt2_compact = 0;   // compact stored nodes apply to the one-directional search only
+    // the backward search is the forward search on the reversed instance (backward/ReverseInstance.h)
+    g_tt2_reverse = (search == "bwd");
+    printOptions(search, set);
+
+    std::string tag = (search == "hbae") ? hbaeTag() : forwardTag();
+    if (group) tag += "-g" + std::to_string(group) + (exam ? "e" + std::to_string(exam) : "");
+    const std::string csv = resultFile(search, set, tag, search == "hbae" ? hbaeCsvHeader() : tt2CsvHeader());
+    std::cout << "results -> " << csv << std::endl;
+
+    // all 48 x 10 instances, or the chosen group / instance; RCPSP_ONLY narrows it further
+    int runs = 0, proven = 0;
+    for (int g = group ? group : 1; g <= (group ? group : 48); g++)
+        for (int e = exam ? exam : 1; e <= (exam ? exam : 10); e++) {
+            if (!onlyInstance(set, g, e)) continue;
+            ++runs;
+            if (search == "hbae") { if (solveAndWriteHBAE(g, e, set, csv).proven) ++proven; }
+            else if (solveRCPSP_TT2(g, e, csv, set) >= 0) ++proven;
+        }
+    std::cout << "\n" << search << " " << set << ": " << runs << " instances, " << proven << " proven optimal, "
+              << runs - proven << " not within " << astar_timeout_seconds << " s, none against the known optima\n"
+              << "CSV: " << csv << std::endl;
+    return 0;
 }

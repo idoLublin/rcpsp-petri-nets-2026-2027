@@ -1,6 +1,7 @@
 # build output
 /rcpsp
 /rcpsp.exe
+/build/
 *.o
 
 # run output (results/<solver>_<set>_<flags>_vNN.csv, logs of run_full.sh)

@@ -18,7 +18,6 @@
 // Orientation: the single pass is a correct longest-path computation only while the activity-id order is
 // topological. PSPLIB numbers the forward net that way (1 = source, n = sink); on the reversed net the order is
 // descending. The net tells which one it is: only in the reversed net does activity 1 have predecessors.
-// (Without this the reversed net got 31-63% of its true critical path.)
 inline double getForwardHcost(const std::vector<short>& unstartedTransitions,
                               const std::vector<std::pair<short, short>>& activeTransitionIndices) {
     const bool reversedNet = !RCPSPex.backword_dependencies.empty() && !RCPSPex.backword_dependencies[0].empty();
