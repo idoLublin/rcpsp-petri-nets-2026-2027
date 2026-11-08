@@ -38,7 +38,7 @@ static const char* kFlags =
     "  RCPSP_TT2_BOUND_MAXRS=1   run THETA / SINGLERES / LOOKAHEAD only on instances with RS <= this\n"
     "  RCPSP_TT2_LBCS=0 _LBCC=0 _LBIP0=0 _LBRC=0   last year's bounds in the heuristic (bounds/LastYearBounds.h)\n"
     "  RCPSP_TT2_LBER=0          last year's energetic bound, root value - g, depth 1-4; _LBER_NODE=0: at every node\n"
-    "  RCPSP_TT2_REOPEN=-1       reopen closed nodes (fwd, bwd); -1 = on when a per-node bound is on, 0 off, 1 on\n"
+    "  RCPSP_TT2_REOPEN=-1       reopen closed nodes (fwd, bwd); -1 = on when an optional bound needs it, 0 off, 1 on\n"
     "  (what each bound does and how it performed: HEURISTICS.md)\n"
     "  RCPSP_TT2_PROF=0          time per search phase in the CSV; RCPSP_TT2_PROF_TRACE=<file> a snapshot every 5 s\n"
     "  RCPSP_BI_DR4=1            hbae: delayed-start dominance on both sides\n"

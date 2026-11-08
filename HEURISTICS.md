@@ -134,17 +134,20 @@ weakness of the "root value - g" form is itself a lesson.
 - **LBER** — destructive bound: a trial makespan C gives each activity a window; if some resource needs more work
   inside some interval than it can do, C is impossible. Depth 1 classical energetic reasoning, 2 + dual feasible
   functions, 3 + shaving at the root, 4 + relaxed revisited ER (two knapsacks per interval). Last year's depths 5-6
-  (an exact IP per interval) needed OR-Tools and are not ported. `RCPSP_TT2_LBER=D` uses the root value - g (consistent);
+  (an exact IP per interval) needed OR-Tools and are not ported. `RCPSP_TT2_LBER=D` uses the root value - g;
   `RCPSP_TT2_LBER_NODE=D` runs the test on the residual problem at every node (much slower). Last year on j30 the root
   form expanded *more* nodes than the base (892 k vs 643 k on solved instances). On the older TT model the per-node
   form at depth >= 3 was inadmissible until shaving windows stopped being carried out of the root; the port keeps
   that fix. The per-node deadline bound `RCPSP_TT2_TT` with `_ENERGY` is this code's stronger relative of LBER.
 
-**Reopening.** The per-node bounds can make h inconsistent (h drops by more than the edge cost). Then A* must expand
-a closed state again when it is reached with a lower g, or it can return a non-optimal makespan (it happened in the
-research code: 61 instead of 60 on one instance with `RCPSP_TT2_TT=1`). `RCPSP_TT2_REOPEN` (default -1 = auto) turns
-reopening on for `fwd` / `bwd` whenever such a bound is on (`RCPSP_TT2_TT`, `THETA`, `SINGLERES`, `LOOKAHEAD`,
-`LBCS`, `LBCC`, `LBER_NODE`); 0 / 1 force it. HBAE always reopens. Re-expansions = `expandNumber - uniqueExpanded`.
+**Reopening.** A* closes each state once, which is exact only if h is consistent and depends on the state alone.
+The per-node bounds can be inconsistent (h drops by more than the edge cost), and the "root value - g" bounds depend
+on g, which is not part of a state: the same state can come back later with a lower g and the same f. Either way a
+closed state must then be expanded again, or A* can return a non-optimal makespan. Both happened: 61 instead of 60
+in the research code with `RCPSP_TT2_TT=1`, and 85 instead of 84 on j30 21:1 with `RCPSP_TT2_LBIP0=1` here (LBER at
+depth 3 gave 87) before reopening was on for them. `RCPSP_TT2_REOPEN` (default -1 = auto) turns reopening on for
+`fwd` / `bwd` whenever such a bound is on (`RCPSP_TT2_TT`, `THETA`, `SINGLERES`, `LOOKAHEAD` and every one of last
+year's bounds); 0 / 1 force it. HBAE always reopens. Re-expansions = `expandNumber - uniqueExpanded`.
 
 ## Not in this repository
 

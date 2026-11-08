@@ -104,7 +104,7 @@ to every CSV row.
 | `RCPSP_TT2_BOUND_MAXRS` | 1.0 | run `THETA` / `SINGLERES` / `LOOKAHEAD` only on instances with resource strength <= this |
 | `RCPSP_TT2_LBCS` / `_LBCC` / `_LBIP0` / `_LBRC` | 0 | last year's bounds in the heuristic: critical sequence, critical capacity, incompatible pairs, resource capacity (`LastYearBounds.h`) |
 | `RCPSP_TT2_LBER` | 0 | last year's energetic-reasoning bound at depth 1-4, as root value - g; `RCPSP_TT2_LBER_NODE` (0): the same test at every node |
-| `RCPSP_TT2_REOPEN` | -1 | reopen closed nodes reached with a lower g (`fwd`, `bwd`); -1 = on exactly when a per-node bound that can make h inconsistent is on, 0 = off, 1 = on |
+| `RCPSP_TT2_REOPEN` | -1 | reopen closed nodes reached with a lower g (`fwd`, `bwd`); -1 = on exactly when an optional bound that needs it is on (HEURISTICS.md, "Reopening"), 0 = off, 1 = on |
 | `RCPSP_TT2_PROF` | 0 | time per search phase in the CSV (costs 6-12%); `RCPSP_TT2_PROF_TRACE=<file>` adds a snapshot every 5 s |
 | `RCPSP_BI_DR4` | 1 | `hbae`: DR4 on both sides |
 | `RCPSP_BI_BATCH` | 0 | `hbae`: batch expansion on both sides |

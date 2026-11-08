@@ -32,9 +32,11 @@
 // few levels, and the per-node ones rarely lift f across C*. This solver's base heuristic already contains LBrc's
 // per-node form (remaining work / capacity), which dominates LBrc - g up to rounding.
 //
-// Consistency: "root value - g" is consistent (h falls by exactly the edge cost). The per-node bounds (LBCS, LBcc,
-// LBER_NODE) are admissible but not always consistent, so the forward / backward search reopens closed nodes
-// when one of them is on (RCPSP_TT2_REOPEN, see Globals.h).
+// Reopening: every bound here is admissible, but none is safe for A* without reopening. The per-node ones (LBCS,
+// LBcc, LBER_NODE) can be inconsistent; the "root value - g" ones depend on g, which is not part of a state's
+// identity, so the same state can come back with a lower g and the same f after it was closed. Measured: LBip0
+// without reopening proved 85 on j30 21:1 (optimum 84); last year's TT2 LBER port turned reopening on for the same
+// reason. The forward / backward search reopens whenever one of these flags is on (RCPSP_TT2_REOPEN, Globals.h).
 //
 // Orientation: the bounds use the topological order of the loaded net, so they work on the reversed net (backward
 // search, HBAE) unchanged; there g counts from the end of the schedule, and the root values are the same.
@@ -103,8 +105,7 @@ inline long long& timeoutSec() { static long long t = 300; return t; }
 inline void reset(long long timeout) { st() = Stats{}; timeoutSec() = timeout; }
 
 inline bool anyOn() { return g_tt2_lbcs || g_tt2_lbcc || g_tt2_lbip0 || g_tt2_lbrc || g_tt2_lber > 0 || g_tt2_lber_node > 0; }
-// the per-node ones: admissible, not always consistent (the search reopens closed nodes when one is on)
-inline bool inconsistentOn() { return g_tt2_lbcs || g_tt2_lbcc || g_tt2_lber_node > 0; }
+inline bool inconsistentOn() { return anyOn(); }   // all of them need reopening (see the top of this file)
 
 // Residual view of a node: which activities are unfinished / active and the active ones' remaining time.
 struct Residual {

@@ -102,13 +102,16 @@ inline double g_prof_next_trace = 5.0;
 inline int    g_prof_group = 0, g_prof_exam = 0;
 inline const char* g_prof_size = "";
 
-// Reopening (fwd, bwd): A* without it is exact only for a consistent h. The base heuristic and the "root value - g"
-// bounds are consistent; the per-node bounds (deadline bound, Θ, single-resource, look-ahead, LBCS, LBcc, LBER_NODE)
-// are admissible but can drop by more than the edge cost, and then a closed state reached later with a lower g
-// must be expanded again (the research code returned 61 instead of 60 on one instance without this).
+// Reopening (fwd, bwd): A* without it is exact only for a consistent h that is a function of the state. The base
+// heuristic is. The per-node bounds (deadline bound, Θ, single-resource, look-ahead, LBCS, LBcc, LBER_NODE) are
+// admissible but can drop by more than the edge cost; the "root value - g" bounds (LBip0, LBrc, LBER) depend on g,
+// which is not part of a state's identity, so a state closed at f = root value can be reached again later with a
+// lower g and the same f. In both cases the closed state must be expanded again: without it the research code
+// returned 61 instead of 60 (RCPSP_TT2_TT), and RCPSP_TT2_LBIP0 returned 85 instead of 84 on j30 21:1.
 inline bool tt2ReopenOn() {
     if (g_tt2_reopen >= 0) return g_tt2_reopen != 0;
-    return g_tt2_node_tt || g_tt2_theta || g_tt2_singleres || g_tt2_lookahead || g_tt2_lbcs || g_tt2_lbcc || g_tt2_lber_node > 0;
+    return g_tt2_node_tt || g_tt2_theta || g_tt2_singleres || g_tt2_lookahead || g_tt2_lbcs || g_tt2_lbcc || g_tt2_lbip0
+        || g_tt2_lbrc || g_tt2_lber > 0 || g_tt2_lber_node > 0;
 }
 
 inline double secs_since(std::chrono::steady_clock::time_point t0) {
