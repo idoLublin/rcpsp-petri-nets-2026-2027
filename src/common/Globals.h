@@ -37,6 +37,14 @@ inline bool g_tt2_node_tt = false;       // RCPSP_TT2_TT: per-node deadline boun
 inline long g_tt2_node_tt_steps = 16;    // RCPSP_TT2_TT_STEPS
 inline bool g_tt2_node_tt_full = true;   // RCPSP_TT2_TT_FULL: window tightening after the compulsory-part test
 inline long g_tt2_node_tt_minact = 2;    // RCPSP_TT2_TT_MINACT: only nodes with at least this many unfinished activities
+inline bool g_tt2_node_tt_energy = false;   // RCPSP_TT2_TT_ENERGY: energetic reasoning in the deadline bound (bounds/NodeEnergetic.h)
+inline bool g_tt2_node_tt_ser = false;      // RCPSP_TT2_TT_SER: suffix energetic reasoning in it (bounds/archive/SuffixEnergetic.h)
+inline bool g_tt2_theta = false;            // RCPSP_TT2_THETA: Θ-tree bound (bounds/archive/ThetaBound.h)
+inline bool g_tt2_singleres = false;        // RCPSP_TT2_SINGLERES: single-resource relaxation (bounds/SubProblemBounds.h)
+inline long g_tt2_singleres_expand = 2000;  // RCPSP_TT2_SINGLERES_EXPAND: expansion cap per sub-solve (0 = none)
+inline bool g_tt2_lookahead = false;        // RCPSP_TT2_LOOKAHEAD: capped look-ahead of the remaining work (bounds/SubProblemBounds.h)
+inline long g_tt2_lookahead_expand = 2000;  // RCPSP_TT2_LOOKAHEAD_EXPAND: expansion cap per sub-solve (0 = none)
+inline double g_tt2_bound_maxrs = 1.0;      // RCPSP_TT2_BOUND_MAXRS: Θ / single-resource / look-ahead only when RS <= this
 inline bool g_tt2_prof = false;          // RCPSP_TT2_PROF: time per search phase in the CSV
 inline std::FILE* g_prof_trace = nullptr;   // RCPSP_TT2_PROF_TRACE=<file>: a progress snapshot every 5 s
 

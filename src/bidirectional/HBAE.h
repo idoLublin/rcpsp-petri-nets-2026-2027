@@ -285,13 +285,13 @@ inline HbaeResult solveRCPSP_TT2_HBAE(int group, int exam, const std::string& se
     return res;
 }
 
-inline const char* hbaeCsvHeader() {
-    return "group,exam,time,solved,makespan,ub,proven,stopReason,expandNumber,expandedF,expandedB,uniqueExpanded,touched,reopened,"
+inline std::string hbaeCsvHeader() {
+    return std::string("group,exam,time,solved,makespan,ub,proven,stopReason,expandNumber,expandedF,expandedB,uniqueExpanded,touched,reopened,"
            "solUpdates,meetHits,firstMeetExp,meetExp,firstU,meetSide,meetGF,meetGB,meetDepth,meetAt,pathLen,trivialAtRoot,"
            "model,problemType,timeoutS,instanceRS,useTT2DR5,dr4,batch,tt2NodeTT,timeFSec,timeBSec,openFEnd,openBEnd,minFFEnd,minFBEnd,"
            "peakRSSMB,dr5PrunedF,dr5PrunedB,dr4Pruned,heurTimeSec,heurCalls,useTT2Prof,profSuccSec,profAvailSec,profGenSec,profDR5Sec,"
            "profHeurCPSec,profHeurResSec,childrenRaw,childrenKept,nodeTtCalls,nodeTtRaised,nodeTtSec,"
-           "biRefute,biRefCalls,biRefProved,biRefSec,biRefNodes,biRefAdopted,biRefMs,biRefShare,knownOptimum";
+           "biRefute,biRefCalls,biRefProved,biRefSec,biRefNodes,biRefAdopted,biRefMs,biRefShare,") + extra::csvColumns() + "knownOptimum";
 }
 
 // Solve one instance, append its row, and check it against the known optimum.
@@ -312,8 +312,9 @@ inline HbaeResult solveAndWriteHBAE(int g, int e, const std::string& set, const 
               << g_prof_hcp_sec << "," << g_prof_hres_sec << "," << g_prof_children_raw << "," << g_prof_children_kept << ","
               << tt2nb::st().calls << "," << tt2nb::st().raised << "," << tt2nb::st().sec << ","
               << g_bi_refute << "," << r.refCalls << "," << r.refProved << "," << r.refSec << "," << r.refNodes << "," << r.refAdopted << ","
-              << (g_bi_refute ? g_bi_refute_ms : 0) << "," << (g_bi_refute ? g_bi_refute_share : 0.0) << ","
-              << knownOptimum(set, g, e) << std::endl;
+              << (g_bi_refute ? g_bi_refute_ms : 0) << "," << (g_bi_refute ? g_bi_refute_share : 0.0) << ",";
+        extra::writeCsv(f);
+        f << knownOptimum(set, g, e) << std::endl;
     }
     checkAgainstOptimum(set, g, e, r.proven, r.mk, r.ub, csv);
     return r;

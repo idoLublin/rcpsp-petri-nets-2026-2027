@@ -45,7 +45,12 @@ src/petri/                      the model and the forward search
     ForwardSearch.h               one A* run, the trivial-root shortcut, the CSV row
 src/backward/ReverseInstance.h  the backward search = the forward search on the reversed instance
 src/bidirectional/              HBAE: BAE_RCPSP.h (the search), HBAE.h (two nets in one search), Prover.h (optional prover)
-src/bounds/                     deadline reasoning: Propagation.h, NodeDeadlineBound.h (optional per-node bound)
+src/bounds/                     optional lower bounds (all described in HEURISTICS.md):
+    Propagation.h                 deadline reasoning (windows, time-table, energetic check), shared
+    NodeDeadlineBound.h           per-node deadline bound (RCPSP_TT2_TT) + NodeEnergetic.h (its energetic step)
+    ExtraBounds.h                 the bounds max'ed into the heuristic, their flags' CSV columns
+    SubProblemBounds.h            single-resource relaxation and look-ahead, on the sub-solver SubsetSolver.h
+    archive/                      bounds measured as weak (Θ-tree, suffix energetic reasoning), kept for reference
 HOG2/                           the parts of the HOG2 search library the build uses (Nathan Sturtevant, see HOG2/LICENSE.txt)
 third_party/json.hpp            nlohmann/json (MIT)
 data/                           the instances, ready to use, and the known optima / PSPLIB bounds (see data/README.md)
@@ -91,6 +96,11 @@ to every CSV row.
 | `RCPSP_TT2_BATCH` | 1 | batch expansion (`fwd`, `bwd`; `RCPSP_TT2_BATCH_CAP`, default 200000 subsets per node) |
 | `RCPSP_TT2_COMPACT` | 0 | 1: stored nodes keep only (finished, active) and the token lists are rebuilt at expansion — the same search with 2-3x less memory on j60/j90; 2: check mode (rebuild and compare every state) |
 | `RCPSP_TT2_TT` | 0 | per-node deadline bound: tries to prove "the rest cannot finish within h" and raises h (j30: 23-30% fewer expansions). Knobs `RCPSP_TT2_TT_STEPS` (16), `_FULL` (1), `_MINACT` (2) |
+| `RCPSP_TT2_TT_ENERGY` | 0 | with `RCPSP_TT2_TT`: energetic reasoning as an extra proof step (`_SER`: its cheap suffix form, archived) |
+| `RCPSP_TT2_THETA` | 0 | Θ-tree earliest-completion bound in the heuristic (archived) |
+| `RCPSP_TT2_SINGLERES` | 0 | single-resource relaxation of the remaining work, solved exactly, in the heuristic; `_EXPAND` (2000) expansions per sub-solve |
+| `RCPSP_TT2_LOOKAHEAD` | 0 | the remaining work solved with a capped exact sub-solver, in the heuristic; `_EXPAND` (2000) |
+| `RCPSP_TT2_BOUND_MAXRS` | 1.0 | run `THETA` / `SINGLERES` / `LOOKAHEAD` only on instances with resource strength <= this |
 | `RCPSP_TT2_PROF` | 0 | time per search phase in the CSV (costs 6-12%); `RCPSP_TT2_PROF_TRACE=<file>` adds a snapshot every 5 s |
 | `RCPSP_BI_DR4` | 1 | `hbae`: DR4 on both sides |
 | `RCPSP_BI_BATCH` | 0 | `hbae`: batch expansion on both sides |
@@ -124,7 +134,7 @@ one core per set): DR5 + DR4 + batch, compact stored nodes (same search, less me
 | j90 | 321 / 480 (66.9%) | 3 / 79 / 119 / 120 | 0 | 24.8 GB |
 
 The coverage is lost at low resource strength (RS 0.2): there the critical-path bound is loose, and that is where
-better bounds pay off. The file was written by an earlier version of this code; it holds the columns this code
+better bounds pay off (see HEURISTICS.md). The file was written by an earlier version of this code; it holds the columns this code
 writes, and its search is the same as this code's default (checked: same expansions on a j30 sample).
 
 ## Running on the lab server
@@ -152,6 +162,7 @@ every set you start, and leave room for the other users of the machine. j30 take
 This is a cut-down version of the research code. Not included: the CBS solver, the root-stage CP solver
 (destructive bound, SGS seed, probe, LNS), the older Petri models (TT, the old backward class, the explicit-wait
 model), parallel HDA*, and the experimental options measured as not helping (symmetry breaking, lazy dominance,
-Θ-tree bound, incumbent pruning, single-resource sub-solves, configurable tie-breaks). Speed-ups that keep the
+incumbent pruning, configurable tie-breaks). The optional lower bounds are all here, off by default; HEURISTICS.md
+describes each one, how it performed, and the ones that live elsewhere. Speed-ups that keep the
 search identical are always on (DR5 tested before a child is built, the batch "close" rule, array-based
 heuristics), and HBAE is fixed to the variant that worked best.

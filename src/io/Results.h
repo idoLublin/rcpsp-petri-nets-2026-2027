@@ -5,6 +5,7 @@
 //   checkAgainstOptimum  every finished instance is compared with data/known_bounds/known_optima.csv; a wrong
 //                     answer stops the run (exit 3): a run with a wrong answer is not a result
 
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -56,6 +57,19 @@ inline bool onlyInstance(const std::string& set, int g, int e) {
     return keep.empty() || keep.count(set + "," + std::to_string(g) + "," + std::to_string(e)) > 0;
 }
 
+// The optional bounds of this run, for the file name (e.g. "-energy-sr2000").
+inline std::string boundTag() {
+    std::string t;
+    if (g_tt2_node_tt && g_tt2_node_tt_energy) t += "-energy";
+    if (g_tt2_node_tt && g_tt2_node_tt_ser) t += "-ser";
+    if (g_tt2_theta) t += "-theta";
+    if (g_tt2_singleres) t += "-sr" + std::to_string(g_tt2_singleres_expand);
+    if (g_tt2_lookahead) t += "-look" + std::to_string(g_tt2_lookahead_expand);
+    if ((g_tt2_theta || g_tt2_singleres || g_tt2_lookahead) && g_tt2_bound_maxrs < 1.0)
+        t += "-maxrs" + std::to_string((int)std::lround(g_tt2_bound_maxrs * 100));
+    return t;
+}
+
 // The flags of this run, for the file name (e.g. "dr5-dr4-batch-compact").
 inline std::string forwardTag() {
     std::string t;
@@ -65,6 +79,8 @@ inline std::string forwardTag() {
     if (g_tt2_batch) add("batch");
     if (g_tt2_compact) add(g_tt2_compact == 2 ? "compactchk" : "compact");
     if (g_tt2_node_tt) add("nodett");
+    const std::string b = boundTag();
+    if (!b.empty()) add(b.substr(1));
     if (g_tt2_prof) add("prof");
     if (std::getenv("RCPSP_ONLY") && *std::getenv("RCPSP_ONLY")) add("only");
     return t.empty() ? "plain" : t;
@@ -74,6 +90,7 @@ inline std::string hbaeTag() {
     if (g_bi_dr4) t += "-dr4";
     if (g_bi_batch) t += "-batch";
     if (g_tt2_node_tt) t += "-nodett";
+    t += boundTag();
     if (g_bi_refute) t += "-biref";
     if (g_tt2_prof) t += "-prof";
     if (std::getenv("RCPSP_ONLY") && *std::getenv("RCPSP_ONLY")) t += "-only";

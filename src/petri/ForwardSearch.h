@@ -67,14 +67,14 @@ inline bool tryTrivialRootSchedule_TT2(std::vector<int>& estStart, int& outMakes
     return true;
 }
 
-inline const char* tt2CsvHeader() {
-    return "group,exam,time,solved,makespan,expandNumber,generatedNumber,depth,model,problemType,maxMem,timeoutS,instanceRS,"
+inline std::string tt2CsvHeader() {
+    return std::string("group,exam,time,solved,makespan,expandNumber,generatedNumber,depth,model,problemType,maxMem,timeoutS,instanceRS,"
            "trivialAtRoot,rootH,heurTimeSec,heurCalls,useTT2DR5,useTT2DR4,useTT2Batch,tt2BatchCap,tt2Compact,tt2NodeTT,useTT2Prof,"
            "dr4Pruned,domPruned,domThinned,domChecks,domInserts,domMaxBucket,dr5EqualPruned,precheckCut,batchCloseNodes,batchCloseSkipped,"
            "compactRebuilds,compactChecked,nodeTtCalls,nodeTtRaised,nodeTtRaiseSum,nodeTtTt0Fail,nodeTtPropFail,nodeTtSec,"
            "profAstarSec,profSuccSec,profSuccCalls,profAvailSec,profGenSec,profDR5Sec,profHashSec,profHashCalls,profHeurCPSec,profHeurResSec,"
            "hCallsAll,hDeltaZeroHits,childrenRaw,childrenKept,domBuckets,domComparisons,openAtEnd,itemsAtEnd,uniqueExpanded,"
-           "maxFExpanded,fAt1s,fAt10s,fAt60s,fAt120s,fAt240s,timedOut,knownOptimum";
+           "maxFExpanded,fAt1s,fAt10s,fAt60s,fAt120s,fAt240s,timedOut,") + extra::csvColumns() + "knownOptimum";
 }
 
 // Everything after `maxMem`: the flags of this run, then the per-instance counters.
@@ -96,7 +96,9 @@ inline void writeTT2Tail(std::ostream& o, const std::string& set, int group, int
       << "," << dt.bucketCount() << "," << dt.comparisons << "," << openAtEnd << "," << itemsAtEnd << "," << uniqueExp
       << "," << g_prof_maxf;
     for (int v : g_prof_f_at) o << "," << v;
-    o << "," << (timedOut ? 1 : 0) << "," << knownOptimum(set, group, exam) << "\n";
+    o << "," << (timedOut ? 1 : 0) << ",";
+    extra::writeCsv(o);
+    o << knownOptimum(set, group, exam) << "\n";
 }
 
 inline void resetTT2Counters(const std::string& set, int group, int exam) {
@@ -112,6 +114,7 @@ inline void resetTT2Counters(const std::string& set, int group, int exam) {
     g_prof_group = group; g_prof_exam = exam; g_prof_size = set.c_str(); g_prof_next_trace = 5.0;
     g_prof_t0 = std::chrono::steady_clock::now();
     tt2nb::reset();
+    extra::reset(astar_timeout_seconds);
 }
 
 // Solve one instance; returns the proven makespan, or -1 if the time ran out.

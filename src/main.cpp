@@ -31,6 +31,12 @@ static const char* kFlags =
     "  RCPSP_TT2_BATCH=1         start a feasible subset of the ready activities per edge (fwd, bwd)\n"
     "  RCPSP_TT2_COMPACT=0       1 = keep stored nodes compact (same search, less memory), 2 = check mode (fwd, bwd)\n"
     "  RCPSP_TT2_TT=0            per-node deadline bound (all searches); _STEPS=16 _FULL=1 _MINACT=2\n"
+    "  RCPSP_TT2_TT_ENERGY=0     with RCPSP_TT2_TT: energetic reasoning as an extra proof step (_SER=0: its suffix form)\n"
+    "  RCPSP_TT2_THETA=0         Θ-tree bound in the heuristic (all searches)\n"
+    "  RCPSP_TT2_SINGLERES=0     single-resource relaxation in the heuristic; _EXPAND=2000 per sub-solve (0 = no cap)\n"
+    "  RCPSP_TT2_LOOKAHEAD=0     capped look-ahead of the remaining work in the heuristic; _EXPAND=2000\n"
+    "  RCPSP_TT2_BOUND_MAXRS=1   run THETA / SINGLERES / LOOKAHEAD only on instances with RS <= this\n"
+    "  (what each bound does and how it performed: HEURISTICS.md)\n"
     "  RCPSP_TT2_PROF=0          time per search phase in the CSV; RCPSP_TT2_PROF_TRACE=<file> a snapshot every 5 s\n"
     "  RCPSP_BI_DR4=1            hbae: delayed-start dominance on both sides\n"
     "  RCPSP_BI_BATCH=0          hbae: batch expansion on both sides\n"
@@ -46,6 +52,14 @@ static void readOptions() {
     g_tt2_node_tt_steps = envNum("RCPSP_TT2_TT_STEPS", 16);
     g_tt2_node_tt_full = envFlag("RCPSP_TT2_TT_FULL", true);
     g_tt2_node_tt_minact = envNum("RCPSP_TT2_TT_MINACT", 2);
+    g_tt2_node_tt_energy = envFlag("RCPSP_TT2_TT_ENERGY", false);
+    g_tt2_node_tt_ser = envFlag("RCPSP_TT2_TT_SER", false);
+    g_tt2_theta = envFlag("RCPSP_TT2_THETA", false);
+    g_tt2_singleres = envFlag("RCPSP_TT2_SINGLERES", false);
+    g_tt2_singleres_expand = envNum("RCPSP_TT2_SINGLERES_EXPAND", 2000);
+    g_tt2_lookahead = envFlag("RCPSP_TT2_LOOKAHEAD", false);
+    g_tt2_lookahead_expand = envNum("RCPSP_TT2_LOOKAHEAD_EXPAND", 2000);
+    if (const char* e = std::getenv("RCPSP_TT2_BOUND_MAXRS")) g_tt2_bound_maxrs = std::atof(e);
     g_tt2_prof = envFlag("RCPSP_TT2_PROF", false);
     if (const char* e = std::getenv("RCPSP_TT2_PROF_TRACE"); e && *e) {   // a progress snapshot every 5 s, appended
         g_prof_trace = std::fopen(e, "a");
@@ -70,7 +84,13 @@ static void printOptions(const std::string& search, const std::string& set) {
     else
         std::cout << "flags: DR5=" << g_tt2_dr5 << " DR4=" << g_tt2_dr4 << " batch=" << g_tt2_batch << " compact=" << g_tt2_compact;
     std::cout << " nodeTT=" << g_tt2_node_tt;
-    if (g_tt2_node_tt) std::cout << " (steps " << g_tt2_node_tt_steps << ", full " << g_tt2_node_tt_full << ", minAct " << g_tt2_node_tt_minact << ")";
+    if (g_tt2_node_tt) std::cout << " (steps " << g_tt2_node_tt_steps << ", full " << g_tt2_node_tt_full << ", minAct " << g_tt2_node_tt_minact
+                                 << ", energy " << g_tt2_node_tt_energy << ", ser " << g_tt2_node_tt_ser << ")";
+    std::cout << " theta=" << g_tt2_theta << " singleRes=" << g_tt2_singleres;
+    if (g_tt2_singleres) std::cout << " (cap " << g_tt2_singleres_expand << ")";
+    std::cout << " lookAhead=" << g_tt2_lookahead;
+    if (g_tt2_lookahead) std::cout << " (cap " << g_tt2_lookahead_expand << ")";
+    if (g_tt2_theta || g_tt2_singleres || g_tt2_lookahead) std::cout << " boundMaxRS=" << g_tt2_bound_maxrs;
     if (search == "hbae") {
         std::cout << " prover=" << g_bi_refute;
         if (g_bi_refute) std::cout << " (" << g_bi_refute_ms << " ms per incumbent, share " << g_bi_refute_share << ")";

@@ -15,15 +15,20 @@
 // Cost control: at most RCPSP_TT2_TT_STEPS deadlines per call (the loop stops at the first deadline it cannot
 // refute), the cheap compulsory-part test before the window tightening (RCPSP_TT2_TT_FULL), and only nodes with
 // at least RCPSP_TT2_TT_MINACT unfinished activities.
+//
+// Optional extra proof steps, tried after the compulsory-part test: energetic reasoning (RCPSP_TT2_TT_ENERGY,
+// NodeEnergetic.h) and its cheap suffix form (RCPSP_TT2_TT_SER, archive/SuffixEnergetic.h).
 // ─────────────────────────────────────────────────────────────────────────────
 #include <algorithm>
 #include <chrono>
 #include <vector>
+#include "NodeEnergetic.h"
 #include "Propagation.h"
+#include "archive/SuffixEnergetic.h"
 
 namespace tt2nb {
 
-struct Stats { long calls = 0, raised = 0, steps = 0, tt0Fail = 0, propFail = 0; double sec = 0.0; long raiseSum = 0; };
+struct Stats { long calls = 0, raised = 0, steps = 0, tt0Fail = 0, propFail = 0, energyFail = 0, serFail = 0; double sec = 0.0; long raiseSum = 0; };
 inline Stats& st() { static Stats s; return s; }
 
 // HBAE alternates between the forward and the reversed net within one solve, so keep a small cache of built
@@ -41,10 +46,15 @@ inline void build() {                       // fingerprint -> Inst, at most 4 ke
     cache().emplace_back(fp, I);
     ctx().I = std::move(I); ctx().built = true; ctx().fp = fp;
 }
+// The loaded instance in array form, rebuilt when the loaded instance changed (also used by the other node bounds).
+inline const deadline::Inst& inst() {
+    if (!ctx().built || ctx().fp != deadline::instFp()) build();
+    return ctx().I;
+}
 
 // scratch, reused across calls
 struct Buf {
-    std::vector<int> d, es, ls, order;
+    std::vector<int> d, es, ls, order, pts;
     std::vector<char> live;
     std::vector<std::vector<int>> prof;
 };
@@ -74,6 +84,9 @@ inline bool refuted(int D) {
     for (int k = 0; k < I.R; ++k)
         for (int t = 0; t <= D; ++t)
             if (prof[k][t] > I.cap[k]) { ++st().tt0Fail; return true; }
+    // ── optional proof steps ───────────────────────────────────────────────
+    if (g_tt2_node_tt_ser && suffixEnergeticRefutes(I, D, b.live, b.d, b.es, b.pts)) { ++st().serFail; return true; }
+    if (g_tt2_node_tt_energy && energeticRefutes(I, D, b.live, b.d, b.es, b.ls, b.pts)) { ++st().energyFail; return true; }
     if (!g_tt2_node_tt_full) return false;
     // ── window tightening against the forced demand ────────────────────────
     for (int pass = 0; pass < 3; ++pass) {

@@ -7,8 +7,8 @@
 //   DR4    (RCPSP_TT2_DR4)   delayed-start dominance (Liu, Jin, Zhou & Hu 2023, rule 4)
 //   batch  (RCPSP_TT2_BATCH) the activities ready NOW may start together in one edge (any feasible subset)
 //   DR5    (RCPSP_TT2_DR5)   cutset dominance against every state generated so far (DominanceTT2.h)
-// Heuristic: max(critical path, resource energy) of what is left (Heuristic.h), optionally raised by the
-// per-node deadline bound (RCPSP_TT2_TT, bounds/NodeDeadlineBound.h).
+// Heuristic: max(critical path, resource energy) of what is left (Heuristic.h), optionally raised by the extra
+// bounds (bounds/ExtraBounds.h) and the per-node deadline bound (RCPSP_TT2_TT, bounds/NodeDeadlineBound.h).
 
 #include <array>
 #include <chrono>
@@ -16,6 +16,7 @@
 #include <optional>
 #include <vector>
 #include "../../HOG2/search/SearchEnvironment.h"
+#include "../bounds/ExtraBounds.h"
 #include "../bounds/NodeDeadlineBound.h"
 #include "DominanceTT2.h"
 #include "State.h"
@@ -249,6 +250,9 @@ inline double RCPSP_TT2::HCost(const RCPSPState_TT2& state1, const RCPSPState_TT
     } else
         base = std::max(getForwardHcost(tempUnfinished, state1.activeTransitionIndices),
                         getforwardResource(tempUnfinished, state1.activeTransitionIndices));
+
+    // optional extra bounds (Θ-tree, single-resource relaxation, look-ahead), each admissible, so the max is too
+    if (extra::anyOn()) base = extra::raise(base, tempUnfinished, state1.activeTransitionIndices);
 
     // RCPSP_TT2_TT: try to REFUTE the remaining makespan `base` on the residual problem; each refutation proves no
     // completion that short exists, so h rises by one and stays admissible.
