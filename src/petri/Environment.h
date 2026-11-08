@@ -253,6 +253,8 @@ inline double RCPSP_TT2::HCost(const RCPSPState_TT2& state1, const RCPSPState_TT
 
     // optional extra bounds (Θ-tree, single-resource relaxation, look-ahead), each admissible, so the max is too
     if (extra::anyOn()) base = extra::raise(base, tempUnfinished, state1.activeTransitionIndices);
+    // last year's bounds (LBCS, LBcc, LBip0, LBrc, LBER), each admissible; g = this state's clock
+    if (ly::anyOn()) base = ly::raise(base, tempUnfinished, state1.activeTransitionIndices, state1.g);
 
     // RCPSP_TT2_TT: try to REFUTE the remaining makespan `base` on the residual problem; each refutation proves no
     // completion that short exists, so h rises by one and stays admissible.

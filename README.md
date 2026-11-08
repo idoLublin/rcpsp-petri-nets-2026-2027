@@ -50,6 +50,7 @@ src/bounds/                     optional lower bounds (all described in HEURISTI
     NodeDeadlineBound.h           per-node deadline bound (RCPSP_TT2_TT) + NodeEnergetic.h (its energetic step)
     ExtraBounds.h                 the bounds max'ed into the heuristic, their flags' CSV columns
     SubProblemBounds.h            single-resource relaxation and look-ahead, on the sub-solver SubsetSolver.h
+    LastYearBounds.h              last year's bounds: LBCS, LBcc, LBip0, LBrc, LBER (with how each did last year)
     archive/                      bounds measured as weak (Θ-tree, suffix energetic reasoning), kept for reference
 HOG2/                           the parts of the HOG2 search library the build uses (Nathan Sturtevant, see HOG2/LICENSE.txt)
 third_party/json.hpp            nlohmann/json (MIT)
@@ -101,6 +102,9 @@ to every CSV row.
 | `RCPSP_TT2_SINGLERES` | 0 | single-resource relaxation of the remaining work, solved exactly, in the heuristic; `_EXPAND` (2000) expansions per sub-solve |
 | `RCPSP_TT2_LOOKAHEAD` | 0 | the remaining work solved with a capped exact sub-solver, in the heuristic; `_EXPAND` (2000) |
 | `RCPSP_TT2_BOUND_MAXRS` | 1.0 | run `THETA` / `SINGLERES` / `LOOKAHEAD` only on instances with resource strength <= this |
+| `RCPSP_TT2_LBCS` / `_LBCC` / `_LBIP0` / `_LBRC` | 0 | last year's bounds in the heuristic: critical sequence, critical capacity, incompatible pairs, resource capacity (`LastYearBounds.h`) |
+| `RCPSP_TT2_LBER` | 0 | last year's energetic-reasoning bound at depth 1-4, as root value - g; `RCPSP_TT2_LBER_NODE` (0): the same test at every node |
+| `RCPSP_TT2_REOPEN` | -1 | reopen closed nodes reached with a lower g (`fwd`, `bwd`); -1 = on exactly when a per-node bound that can make h inconsistent is on, 0 = off, 1 = on |
 | `RCPSP_TT2_PROF` | 0 | time per search phase in the CSV (costs 6-12%); `RCPSP_TT2_PROF_TRACE=<file>` adds a snapshot every 5 s |
 | `RCPSP_BI_DR4` | 1 | `hbae`: DR4 on both sides |
 | `RCPSP_BI_BATCH` | 0 | `hbae`: batch expansion on both sides |

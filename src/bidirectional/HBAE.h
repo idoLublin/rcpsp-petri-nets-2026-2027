@@ -291,7 +291,7 @@ inline std::string hbaeCsvHeader() {
            "model,problemType,timeoutS,instanceRS,useTT2DR5,dr4,batch,tt2NodeTT,timeFSec,timeBSec,openFEnd,openBEnd,minFFEnd,minFBEnd,"
            "peakRSSMB,dr5PrunedF,dr5PrunedB,dr4Pruned,heurTimeSec,heurCalls,useTT2Prof,profSuccSec,profAvailSec,profGenSec,profDR5Sec,"
            "profHeurCPSec,profHeurResSec,childrenRaw,childrenKept,nodeTtCalls,nodeTtRaised,nodeTtSec,"
-           "biRefute,biRefCalls,biRefProved,biRefSec,biRefNodes,biRefAdopted,biRefMs,biRefShare,") + extra::csvColumns() + "knownOptimum";
+           "biRefute,biRefCalls,biRefProved,biRefSec,biRefNodes,biRefAdopted,biRefMs,biRefShare,") + extra::allCsvColumns() + "knownOptimum";
 }
 
 // Solve one instance, append its row, and check it against the known optimum.

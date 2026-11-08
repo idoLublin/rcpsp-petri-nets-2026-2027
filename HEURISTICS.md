@@ -98,6 +98,54 @@ and every one is a flag (see the README's flag table); every flag and counter is
 - **How it does (research code, j30 with DR5):** it beats the base heuristic at many nodes (61% on group 13) but
   rarely lifts f across the line: 0.7-2.6% fewer expansions, and 9.5% more time on the hard group 13.
 
+## Last year's bounds (in `src/bounds/LastYearBounds.h`, project 2025-2026)
+
+Ported from last year's repositories (the `new_heuristic` branch and the LBER port), all off by default. The
+numbers are last year's own (their summary of 2026-08-05): TT2 forward search **without** dominance, PSPLIB,
+300 s, one core, instances proven optimal of 480. Their "CP" row is this code's base heuristic, max(critical path,
+energy).
+
+| flag | bound | j30 | j60 | j90 |
+|---|---|---|---|---|
+| (none) | base heuristic ("CP") | 476 | 241 | 182 |
+| `RCPSP_TT2_LBCC=1` | LBcc, critical capacity | 476 | 236 | 179 |
+| `RCPSP_TT2_LBIP0=1` | LBip0, incompatible pairs (Klein & Scholl LB10) | 476 | 241 | 183 |
+| `RCPSP_TT2_LBRC=1` | LBrc, resource capacity (Klein & Scholl LB2) ("LBMAX") | 476 | 241 | 182 |
+| `RCPSP_TT2_LBCS=1` | LBCS, critical sequence (Stinson et al. 1978) | 477 | 240 | 181 |
+| `RCPSP_TT2_LBER=3` | LBER, energetic reasoning, root value - g | 477 | 242 | not run |
+
+With the cutset dominance (DR5): LBCS 480 / 299 / 208, LBMAX 480 / 301 / 209. **None of them moved coverage by more
+than one or two instances.** Why, in short: three of them (LBip0, LBrc, LBER) are a single number for the whole
+instance minus g, so they help only near the root; the per-node ones (LBCS, LBcc) are higher at some nodes but rarely
+lift f to C\*. Good starting points for students: they are short, each is a known bound from the literature, and the
+weakness of the "root value - g" form is itself a lesson.
+
+- **LBrc** — `max over resources of ceil(total work / capacity)`. The base heuristic already has its per-node form
+  (remaining work / capacity), which is never weaker except for rounding up; expect no effect.
+- **LBip0** — two activities that are not ordered by precedence but can't run together (some resource
+  `r_i + r_j > capacity`) run one after the other; the longest path through either order bounds the makespan. Last
+  year: +1 on j90, otherwise the same as the base.
+- **LBCS** — take one critical chain of the remaining work; an activity off the chain can overlap only the links it
+  is resource-compatible with, the rest of it adds to the chain's length. Per node. Last year's first version (a
+  time-profile form) was **not admissible** (j30 13:5 gave 68 instead of 67); the port is their fixed chain form.
+- **LBcc** — the "tank" model: per resource, work arrives at each activity's earliest start and drains at the
+  capacity. Per node. Uses the root earliest starts minus g; the residual earliest start from the node is never
+  smaller, an easy strengthening to try.
+- **LBER** — destructive bound: a trial makespan C gives each activity a window; if some resource needs more work
+  inside some interval than it can do, C is impossible. Depth 1 classical energetic reasoning, 2 + dual feasible
+  functions, 3 + shaving at the root, 4 + relaxed revisited ER (two knapsacks per interval). Last year's depths 5-6
+  (an exact IP per interval) needed OR-Tools and are not ported. `RCPSP_TT2_LBER=D` uses the root value - g (consistent);
+  `RCPSP_TT2_LBER_NODE=D` runs the test on the residual problem at every node (much slower). Last year on j30 the root
+  form expanded *more* nodes than the base (892 k vs 643 k on solved instances). On the older TT model the per-node
+  form at depth >= 3 was inadmissible until shaving windows stopped being carried out of the root; the port keeps
+  that fix. The per-node deadline bound `RCPSP_TT2_TT` with `_ENERGY` is this code's stronger relative of LBER.
+
+**Reopening.** The per-node bounds can make h inconsistent (h drops by more than the edge cost). Then A* must expand
+a closed state again when it is reached with a lower g, or it can return a non-optimal makespan (it happened in the
+research code: 61 instead of 60 on one instance with `RCPSP_TT2_TT=1`). `RCPSP_TT2_REOPEN` (default -1 = auto) turns
+reopening on for `fwd` / `bwd` whenever such a bound is on (`RCPSP_TT2_TT`, `THETA`, `SINGLERES`, `LOOKAHEAD`,
+`LBCS`, `LBCC`, `LBER_NODE`); 0 / 1 force it. HBAE always reopens. Re-expansions = `expandNumber - uniqueExpanded`.
+
 ## Not in this repository
 
 | Bound | What it is | How it did | Where |
@@ -106,7 +154,7 @@ and every one is a flag (see the README's flag table); every flag and counter is
 | Root stage | destructive lower bound + schedule seed + deadline probe + LNS, once before the search | a separate CP-style solver; closes most instances by itself | research repo |
 | Inflated RS relaxation | raise every capacity to the next RS level and solve | provably no better than the base energy bound on this model (it only loosens it); the look-ahead above is its real-capacity form | not ported |
 | State-equation / time-indexed LP | Bonet's state-equation heuristic; the firing-count form is not admissible for makespan, so a time-indexed LP relaxation instead | +0.14 average over the base heuristic at 0.5 s per node; with minimal-forbidden-set cuts +0.7 at about 5 s: root-only at best | Python prototype, research repo (`lp_root_bound/`) |
-| Last year's bounds | LBCS (Klein & Scholl LB3, workload along the critical path), LBcc (critical capacity), LBip0 (LB10, incompatible pairs), LBrc (LB2, resource capacity), LBER (energetic root bound - g) | evaluated last year on TT / TT2; the critical path was best on j30, LBER expanded more nodes than it | last year's repositories (`new_heuristic`, LBER port) |
+| LBER depths 5-6 | exact revisited ER (EER, one IP per resource and interval) and global revisited ER (GER, one IP over all resources) | root only last year (an IP per interval is far too slow per node) | needs OR-Tools; last year's LBER port |
 | Root windows as a prune | the root's latest starts, used at every node | inert: 0 of 768 activities tightened | needs the root stage |
 
 ## How "this code" was checked

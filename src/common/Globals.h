@@ -45,6 +45,14 @@ inline long g_tt2_singleres_expand = 2000;  // RCPSP_TT2_SINGLERES_EXPAND: expan
 inline bool g_tt2_lookahead = false;        // RCPSP_TT2_LOOKAHEAD: capped look-ahead of the remaining work (bounds/SubProblemBounds.h)
 inline long g_tt2_lookahead_expand = 2000;  // RCPSP_TT2_LOOKAHEAD_EXPAND: expansion cap per sub-solve (0 = none)
 inline double g_tt2_bound_maxrs = 1.0;      // RCPSP_TT2_BOUND_MAXRS: Θ / single-resource / look-ahead only when RS <= this
+inline bool g_tt2_lbcs = false;            // RCPSP_TT2_LBCS: last year's critical-sequence bound (bounds/LastYearBounds.h)
+inline bool g_tt2_lbcc = false;            // RCPSP_TT2_LBCC: last year's critical-capacity bound
+inline bool g_tt2_lbip0 = false;           // RCPSP_TT2_LBIP0: last year's incompatible-pairs bound (root value - g)
+inline bool g_tt2_lbrc = false;            // RCPSP_TT2_LBRC: last year's resource-capacity bound (root value - g)
+inline long g_tt2_lber = 0;                // RCPSP_TT2_LBER=D: last year's energetic bound, root value - g, depth 1..4 (0 = off)
+inline long g_tt2_lber_node = 0;           // RCPSP_TT2_LBER_NODE=D: the energetic test at every node, depth 1..4 (0 = off)
+inline long g_tt2_reopen = -1;             // RCPSP_TT2_REOPEN: reopen closed nodes reached with a lower g (fwd, bwd);
+                                           // -1 = auto: on whenever a per-node bound that can make h inconsistent is on
 inline bool g_tt2_prof = false;          // RCPSP_TT2_PROF: time per search phase in the CSV
 inline std::FILE* g_prof_trace = nullptr;   // RCPSP_TT2_PROF_TRACE=<file>: a progress snapshot every 5 s
 
@@ -93,6 +101,15 @@ inline std::chrono::steady_clock::time_point g_prof_t0;    // search start
 inline double g_prof_next_trace = 5.0;
 inline int    g_prof_group = 0, g_prof_exam = 0;
 inline const char* g_prof_size = "";
+
+// Reopening (fwd, bwd): A* without it is exact only for a consistent h. The base heuristic and the "root value - g"
+// bounds are consistent; the per-node bounds (deadline bound, Θ, single-resource, look-ahead, LBCS, LBcc, LBER_NODE)
+// are admissible but can drop by more than the edge cost, and then a closed state reached later with a lower g
+// must be expanded again (the research code returned 61 instead of 60 on one instance without this).
+inline bool tt2ReopenOn() {
+    if (g_tt2_reopen >= 0) return g_tt2_reopen != 0;
+    return g_tt2_node_tt || g_tt2_theta || g_tt2_singleres || g_tt2_lookahead || g_tt2_lbcs || g_tt2_lbcc || g_tt2_lber_node > 0;
+}
 
 inline double secs_since(std::chrono::steady_clock::time_point t0) {
     return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();

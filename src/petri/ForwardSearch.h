@@ -74,7 +74,7 @@ inline std::string tt2CsvHeader() {
            "compactRebuilds,compactChecked,nodeTtCalls,nodeTtRaised,nodeTtRaiseSum,nodeTtTt0Fail,nodeTtPropFail,nodeTtSec,"
            "profAstarSec,profSuccSec,profSuccCalls,profAvailSec,profGenSec,profDR5Sec,profHashSec,profHashCalls,profHeurCPSec,profHeurResSec,"
            "hCallsAll,hDeltaZeroHits,childrenRaw,childrenKept,domBuckets,domComparisons,openAtEnd,itemsAtEnd,uniqueExpanded,"
-           "maxFExpanded,fAt1s,fAt10s,fAt60s,fAt120s,fAt240s,timedOut,") + extra::csvColumns() + "knownOptimum";
+           "maxFExpanded,fAt1s,fAt10s,fAt60s,fAt120s,fAt240s,timedOut,") + extra::allCsvColumns() + "knownOptimum";
 }
 
 // Everything after `maxMem`: the flags of this run, then the per-instance counters.
@@ -150,6 +150,7 @@ inline int solveRCPSP_TT2(int group, int exam, const std::string& csv, const std
 
     RCPSP_TT2 env;
     TemplateAStar<RCPSPState_TT2, int, RCPSP_TT2> astar;
+    astar.SetReopenNodes(tt2ReopenOn());            // needed for an inconsistent h (Globals.h, tt2ReopenOn)
     std::vector<RCPSPState_TT2> path;
     const auto start = std::chrono::high_resolution_clock::now();
     g_prof_t0 = std::chrono::steady_clock::now(); g_prof_next_trace = 5.0;

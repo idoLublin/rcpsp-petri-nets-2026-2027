@@ -67,6 +67,14 @@ inline std::string boundTag() {
     if (g_tt2_lookahead) t += "-look" + std::to_string(g_tt2_lookahead_expand);
     if ((g_tt2_theta || g_tt2_singleres || g_tt2_lookahead) && g_tt2_bound_maxrs < 1.0)
         t += "-maxrs" + std::to_string((int)std::lround(g_tt2_bound_maxrs * 100));
+    if (g_tt2_lbcs) t += "-lbcs";
+    if (g_tt2_lbcc) t += "-lbcc";
+    if (g_tt2_lbip0) t += "-ip0";
+    if (g_tt2_lbrc) t += "-lbrc";
+    if (g_tt2_lber > 0) t += "-lber" + std::to_string(g_tt2_lber);
+    if (g_tt2_lber_node > 0) t += "-lbernode" + std::to_string(g_tt2_lber_node);
+    if (g_tt2_reopen == 0) t += "-noreopen";
+    if (g_tt2_reopen == 1) t += "-reopen";
     return t;
 }
 

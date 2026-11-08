@@ -36,6 +36,9 @@ static const char* kFlags =
     "  RCPSP_TT2_SINGLERES=0     single-resource relaxation in the heuristic; _EXPAND=2000 per sub-solve (0 = no cap)\n"
     "  RCPSP_TT2_LOOKAHEAD=0     capped look-ahead of the remaining work in the heuristic; _EXPAND=2000\n"
     "  RCPSP_TT2_BOUND_MAXRS=1   run THETA / SINGLERES / LOOKAHEAD only on instances with RS <= this\n"
+    "  RCPSP_TT2_LBCS=0 _LBCC=0 _LBIP0=0 _LBRC=0   last year's bounds in the heuristic (bounds/LastYearBounds.h)\n"
+    "  RCPSP_TT2_LBER=0          last year's energetic bound, root value - g, depth 1-4; _LBER_NODE=0: at every node\n"
+    "  RCPSP_TT2_REOPEN=-1       reopen closed nodes (fwd, bwd); -1 = on when a per-node bound is on, 0 off, 1 on\n"
     "  (what each bound does and how it performed: HEURISTICS.md)\n"
     "  RCPSP_TT2_PROF=0          time per search phase in the CSV; RCPSP_TT2_PROF_TRACE=<file> a snapshot every 5 s\n"
     "  RCPSP_BI_DR4=1            hbae: delayed-start dominance on both sides\n"
@@ -60,6 +63,13 @@ static void readOptions() {
     g_tt2_lookahead = envFlag("RCPSP_TT2_LOOKAHEAD", false);
     g_tt2_lookahead_expand = envNum("RCPSP_TT2_LOOKAHEAD_EXPAND", 2000);
     if (const char* e = std::getenv("RCPSP_TT2_BOUND_MAXRS")) g_tt2_bound_maxrs = std::atof(e);
+    g_tt2_lbcs = envFlag("RCPSP_TT2_LBCS", false);
+    g_tt2_lbcc = envFlag("RCPSP_TT2_LBCC", false);
+    g_tt2_lbip0 = envFlag("RCPSP_TT2_LBIP0", false);
+    g_tt2_lbrc = envFlag("RCPSP_TT2_LBRC", false);
+    g_tt2_lber = std::max(0L, std::min(4L, envNum("RCPSP_TT2_LBER", 0)));
+    g_tt2_lber_node = std::max(0L, std::min(4L, envNum("RCPSP_TT2_LBER_NODE", 0)));
+    g_tt2_reopen = std::max(-1L, std::min(1L, envNum("RCPSP_TT2_REOPEN", -1)));
     g_tt2_prof = envFlag("RCPSP_TT2_PROF", false);
     if (const char* e = std::getenv("RCPSP_TT2_PROF_TRACE"); e && *e) {   // a progress snapshot every 5 s, appended
         g_prof_trace = std::fopen(e, "a");
@@ -91,6 +101,9 @@ static void printOptions(const std::string& search, const std::string& set) {
     std::cout << " lookAhead=" << g_tt2_lookahead;
     if (g_tt2_lookahead) std::cout << " (cap " << g_tt2_lookahead_expand << ")";
     if (g_tt2_theta || g_tt2_singleres || g_tt2_lookahead) std::cout << " boundMaxRS=" << g_tt2_bound_maxrs;
+    std::cout << " lbcs=" << g_tt2_lbcs << " lbcc=" << g_tt2_lbcc << " lbip0=" << g_tt2_lbip0 << " lbrc=" << g_tt2_lbrc
+              << " lber=" << g_tt2_lber << " lberNode=" << g_tt2_lber_node;
+    if (search != "hbae") std::cout << " reopen=" << tt2ReopenOn();
     if (search == "hbae") {
         std::cout << " prover=" << g_bi_refute;
         if (g_bi_refute) std::cout << " (" << g_bi_refute_ms << " ms per incumbent, share " << g_bi_refute_share << ")";

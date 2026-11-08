@@ -11,7 +11,9 @@
 
 #include <chrono>
 #include <ostream>
+#include <string>
 #include <vector>
+#include "LastYearBounds.h"
 #include "NodeDeadlineBound.h"
 #include "SubProblemBounds.h"
 #include "archive/ThetaBound.h"
@@ -27,6 +29,7 @@ inline void reset(long long timeoutSec) {
     until() = std::chrono::steady_clock::now() + std::chrono::seconds(timeoutSec);
     theta::reset();
     subb::reset();
+    ly::reset(timeoutSec);
 }
 
 // base = the heuristic so far (remaining makespan); returns max(base, the bounds that are on).
@@ -56,6 +59,9 @@ inline const char* csvColumns() {
            "singleResCapped,singleResExpands,singleResSec,lookAheadCalls,lookAheadBetter,lookAheadCapped,"
            "lookAheadExpands,lookAheadSec,";
 }
+// the same plus last year's bounds (LastYearBounds.h)
+inline std::string allCsvColumns() { return std::string(csvColumns()) + ly::csvColumns();
+}
 inline void writeCsv(std::ostream& o) {
     const auto& nb = tt2nb::st();
     const auto& s = subb::st();
@@ -65,6 +71,7 @@ inline void writeCsv(std::ostream& o) {
       << theta::better() << "," << theta::sec() << ","
       << s.srCalls << "," << s.srBetter << "," << s.srCapped << "," << s.srExpands << "," << s.srSec << ","
       << s.laCalls << "," << s.laBetter << "," << s.laCapped << "," << s.laExpands << "," << s.laSec << ",";
+    ly::writeCsv(o);
 }
 
 }  // namespace extra
